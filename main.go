@@ -80,6 +80,61 @@ func (c *Client) reservations(uid int) ([]reservation, error) {
 	return reservations, nil
 }
 
+func cachedFile(name string, target any) error {
+	f, err := os.ReadFile(name)
+	if err != nil {
+		return fmt.Errorf("failed to read `%v` file: %w", name, err)
+	}
+
+	if err := json.Unmarshal(f, &target); err != nil {
+		return fmt.Errorf("failed to parse the `%v` file: %w", name, err)
+	}
+
+	return nil
+}
+
+func fetchData() ([]reservation, error) {
+	fileName := "reservations.json"
+
+	// Try to open file with data
+	var res []reservation
+	err := cachedFile(fileName, &res)
+	if err == nil {
+		log.Println("found reservations in cache, skipping fetching data...")
+		return res, nil
+	}
+
+	log.Println("reservations not found in cache, fetchin data...")
+	// If file does not exists, fetch data
+	c, err := client()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client: %w", err)
+	}
+
+	var me struct {
+		ID int `json:"userId"`
+	}
+	err = c.req("/me/", &me)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get userid: %w", err)
+	}
+	log.Printf("User ID: %d\n", me.ID)
+
+	res, err = c.reservations(me.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get reservations: %w", err)
+	}
+
+	raw, err := json.Marshal(res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshall reservations: %w", err)
+	}
+	// Store the file in cache for next use
+	os.WriteFile(fileName, raw, 0600)
+
+	return res, nil
+}
+
 func minuteDiff(start, end int) (int, error) {
 	startTime := time.Unix(int64(start), 0)
 	endTime := time.Unix(int64(end), 0)
@@ -113,26 +168,13 @@ func calculate(res []reservation) error {
 }
 
 func main() {
-	c, err := client()
+	res, err := fetchData()
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to fetch data: %w", err))
 	}
 
-	var me struct {
-		ID int `json:"userId"`
-	}
-	err = c.req("/me/", &me)
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("User ID: %d\n", me.ID)
-
-	res, err := c.reservations(me.ID)
-	if err != nil {
-		panic(err)
-	}
 	err = calculate(res)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to calculate interesting facts: %w", err))
 	}
 }
