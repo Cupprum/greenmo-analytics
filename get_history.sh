@@ -8,4 +8,4 @@ set -a
 source .env
 set +a
 
-go run main.go
+go run .
