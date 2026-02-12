@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 )
 
 func cachedFile(name string, target any) error {
@@ -49,36 +48,42 @@ func FetchData[T any](fileName string, f func() (T, error)) (T, error) {
 	return target, nil
 }
 
-func Req(url, token string, query map[string]string, target any) error {
+func Req(url, token string, query map[string]string, client *http.Client, target any) error {
 	// Request creation
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 
 	if query != nil {
 		q := req.URL.Query()
-		for 
-		q.Add("customerReference", user.Reference)
-		q.Add("customerId", strconv.Itoa(user.Id))
-		q.Add("firstName", user.FirstName)
-		q.Add("lastName", user.LastName)
-		q.Add("email", user.Mail)
+		for k, v := range query {
+			q.Add(k, v)
+		}
 		req.URL.RawQuery = q.Encode()
 	}
 
+	if client == nil {
+		client = http.DefaultClient
+	}
+
 	// Request execution
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil || resp.StatusCode != 200 {
 		return fmt.Errorf("failed to execute request, response code: %v, error: %w", resp.StatusCode, err)
 	}
 	defer resp.Body.Close()
 
-	// Response parsing
-	err = json.NewDecoder(resp.Body).Decode(target)
-	if err != nil {
-		return fmt.Errorf("failed to decode response: %w", err)
+	if target != nil {
+		// Response parsing
+		err = json.NewDecoder(resp.Body).Decode(target)
+		if err != nil {
+			return fmt.Errorf("failed to decode response: %w", err)
+		}
 	}
 	return nil
 }

@@ -3,8 +3,10 @@ package gql
 import (
 	"fmt"
 	"greenmo/httpapi"
+	"greenmo/tools"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -31,21 +33,26 @@ func gqlClient(user httpapi.User) (GqlClient, error) {
 		Timeout: 30 * time.Second,
 	}
 
-	// Set the cookie
-	req, err := http.NewRequest("GET", c.url+"/account", nil)
-	if err != nil {
-		return c, fmt.Errorf("failed to create request: %w", err)
+	params := map[string]string{
+		"customerReference": user.Reference,
+		"customerId":        strconv.Itoa(user.Id),
+		"firstName":         user.FirstName,
+		"lastName":          user.LastName,
+		"email":             user.Mail,
 	}
-	q := req.URL.Query()
-	q.Add("customerReference", user.Reference)
-	q.Add("customerId", strconv.Itoa(user.Id))
-	q.Add("firstName", user.FirstName)
-	q.Add("lastName", user.LastName)
-	q.Add("email", user.Mail)
-	req.URL.RawQuery = q.Encode()
+
+	// Set the cookie
+	err = tools.Req(c.url+"/account", "", params, c.client, nil)
+	if err != nil {
+		return c, fmt.Errorf("failed to execute request: %w", err)
+	}
 
 	// Verify the cookie
-	for _, cookie := range c.client.Jar.Cookies(req.URL) {
+	u, err := url.Parse(c.url + "/account")
+	if err != nil {
+		return c, fmt.Errorf("failed to parse URL: %w", err)
+	}
+	for _, cookie := range c.client.Jar.Cookies(u) {
 		if cookie.Name == "driveToken" {
 			return c, nil
 		}

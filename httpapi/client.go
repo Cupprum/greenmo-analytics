@@ -42,7 +42,7 @@ func (c *client) user() (User, error) {
 	var u User
 
 	url := c.url + "/me/"
-	err := tools.Req(url, c.token, nil, &u)
+	err := tools.Req(url, c.token, nil, nil, &u)
 	if err != nil {
 		return u, fmt.Errorf("failed to get userid: %w", err)
 	}
@@ -59,7 +59,7 @@ func (c *client) reservations(uid int) ([]Reservation, error) {
 		res := []Reservation{}
 
 		url := fmt.Sprintf("%v/users/%d/reservations/pages/%d/?orderBy=desc", c.url, uid, pageId)
-		err := tools.Req(url, c.token, nil, &res)
+		err := tools.Req(url, c.token, nil, nil, &res)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get reservations: %w", err)
 		}
