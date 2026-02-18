@@ -1,0 +1,8 @@
+.env
+
+# Data
+financials.json
+reservations.json
+
+# Notes
+TODO.md
