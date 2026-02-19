@@ -126,8 +126,7 @@ func (c *GqlClient) getBills() ([]Bill, error) {
 			return nil, fmt.Errorf("failed to execute request: %w", err)
 		}
 
-		nOfInvoices := len(resp.Data.Viewer.Invoices)
-		if nOfInvoices == 0 {
+		if len(resp.Data.Viewer.Invoices) == 0 {
 			break
 		}
 		for _, i := range resp.Data.Viewer.Invoices {
@@ -175,16 +174,16 @@ func (c *GqlClient) getVouchers() ([]Voucher, error) {
 			return nil, fmt.Errorf("failed to execute request: %w", err)
 		}
 
-		nOfInvoices := len(resp.Data.Viewer.CreditVouchers.Edges)
-		if nOfInvoices == 0 {
+		if len(resp.Data.Viewer.CreditVouchers.Edges) == 0 {
 			break
 		}
-		for _, i := range resp.Data.Viewer.CreditVouchers.Edges {
-			vouchers = append(vouchers, i.Node)
+		for _, e := range resp.Data.Viewer.CreditVouchers.Edges {
+			vouchers = append(vouchers, e.Node)
+			fmt.Println(e.Node)
 		}
 
 		// Update the offset for the next batch
-		b["variables"].(map[string]interface{})["offset"] = 20 + b["variables"].(map[string]interface{})["offset"].(int)
+		b["variables"].(map[string]interface{})["offset"] = 1 + b["variables"].(map[string]interface{})["offset"].(int)
 	}
 
 	return vouchers, nil
