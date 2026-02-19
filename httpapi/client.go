@@ -17,8 +17,8 @@ type User struct {
 
 type Reservation struct {
 	Plate string `json:"licencePlate"`
-	Start int    `json:"startTime"`
-	End   int    `json:"endTime"`
+	Start int    `json:"openCallSuccessfulTime"`
+	End   int    `json:"closeCallSuccessfulTime"`
 }
 
 type client struct {
