@@ -52,7 +52,7 @@ func (c *client) user() (User, error) {
 }
 
 func (c *client) reservations(uid int) ([]Reservation, error) {
-	pageId := 0
+	pageId := 1 // If this is set to 0, the API returns everything at the same time
 	reservations := []Reservation{}
 
 	for {
