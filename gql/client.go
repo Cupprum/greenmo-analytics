@@ -137,7 +137,7 @@ func (c *GqlClient) getBills() ([]Bill, error) {
 			bills = append(bills, bill)
 		}
 
-		// Update the offset for the next batch
+		// Update the offset for the next batch, its weird that both queries have different way of handling offset
 		b["variables"].(map[string]interface{})["offset"] = 10 + b["variables"].(map[string]interface{})["offset"].(int)
 	}
 
@@ -179,10 +179,9 @@ func (c *GqlClient) getVouchers() ([]Voucher, error) {
 		}
 		for _, e := range resp.Data.Viewer.CreditVouchers.Edges {
 			vouchers = append(vouchers, e.Node)
-			fmt.Println(e.Node)
 		}
 
-		// Update the offset for the next batch
+		// Update the offset for the next batch, its weird that both queries have different way of handling offset
 		b["variables"].(map[string]interface{})["offset"] = 1 + b["variables"].(map[string]interface{})["offset"].(int)
 	}
 
