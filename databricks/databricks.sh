@@ -57,7 +57,7 @@ case ${1:-} in
         echo ">>> [DELETE] Removing all resources from Databricks..."
 
         echo ">>> Deleting Schema (Tables & Materialized Views)..."
-        databricks schemas delete workspace.greenmo_raw_data --force 2>/dev/null || echo "Schema not found."
+        databricks schemas delete workspace.greenmobility --force 2>/dev/null || echo "Schema not found."
 
         echo ">>> Deleting Data Volume..."
         databricks volumes delete workspace.default.greenmo_raw_data 2>/dev/null || echo "Volume not found."
