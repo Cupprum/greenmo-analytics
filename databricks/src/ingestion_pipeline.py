@@ -1,14 +1,16 @@
 # Databricks notebook source
 import dlt
-from pyspark.sql.functions import from_json, col, current_timestamp, count, avg, sum
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
+from pyspark.sql.functions import col, current_timestamp, count, avg, sum, min, max, to_timestamp, round as spark_round
 
 # === BRONZE: Load raw JSON files ===
 @dlt.table(
     name="greenmo_trips_bronze",
-    comment="Raw trip data from JSON files"
+    comment="Raw trip data from JSON files",
+    table_properties={
+        "delta.columnMapping.mode": "name"
+    }
 )
-def bronze_trips_data():
+def greenmo_trips_bronze():
     return (
         spark.read
         .format("json")
@@ -17,31 +19,78 @@ def bronze_trips_data():
         .withColumn("ingestion_time", current_timestamp())
     )
 
-# # === SILVER: Clean and parse ===
-# @dlt.table(
-#     name="silver_trips_data",
-#     comment="Cleaned trip data"
-# )
-# @dlt.expect_or_drop("valid_id", "id IS NOT NULL")
-# def silver_trips_data():
-#     # TODO: Update schema to match your actual data structure
-#     return (
-#         dlt.read("bronze_trips_data")
-#         .select("*", "ingestion_time")
-#         .dropDuplicates(["id"])
-#     )
+# === SILVER: Clean and flatten ===
+@dlt.table(
+    name="greenmo_trips_silver",
+    comment="Cleaned and flattened trip data"
+)
+@dlt.expect_or_drop("valid_id", "id IS NOT NULL")
+@dlt.expect_or_drop("valid_times", "driveStartTime IS NOT NULL AND endTime IS NOT NULL")
+def greenmo_trips_silver():
+    return (
+        dlt.read("greenmo_trips_bronze")
+        .select(
+            col("id").alias("trip_id"),
+            col("branchId").alias("branch_id"),
+            col("invoiceId").alias("invoice_id"),
+            col("state"),
+            col("type").alias("trip_type"),
+            to_timestamp(col("startTime")).alias("start_time"),
+            to_timestamp(col("driveStartTime")).alias("drive_start_time"),
+            to_timestamp(col("endTime")).alias("end_time"),
+            col("distance"),
+            col("currency"),
+            col("startAddress").alias("start_address"),
+            col("endAddress").alias("end_address"),
+            col("startKilometers").alias("start_km"),
+            col("endKilometers").alias("end_km"),
+            col("vehicle.licensePlate").alias("vehicle_plate"),
+            col("vehicle.name").alias("vehicle_name"),
+            col("rideMode").alias("ride_mode"),
+            col("ingestion_time")
+        )
+        .dropDuplicates(["trip_id"])
+        .withColumn("drive_duration_minutes", 
+            spark_round((col("end_time").cast("long") - col("drive_start_time").cast("long")) / 60, 2))
+    )
 
-# # === GOLD: Aggregates ===
-# @dlt.table(
-#     name="gold_trip_metrics",
-#     comment="Trip aggregations"
-# )
-# def gold_trip_metrics():
-#     return (
-#         dlt.read("silver_trips_data")
-#         .groupBy("status")  # TODO: Update grouping to match your needs
-#         .agg(
-#             count("*").alias("trip_count"),
-#             avg("duration").alias("avg_duration")  # TODO: Update fields
-#         )
-#     )
+# === GOLD: Daily trip metrics ===
+@dlt.table(
+    name="greenmo_trips_gold_daily",
+    comment="Daily trip aggregations"
+)
+def greenmo_trips_gold_daily():
+    from pyspark.sql.functions import to_date
+    
+    return (
+        dlt.read("greenmo_trips_silver")
+        .withColumn("trip_date", to_date(col("drive_start_time")))
+        .groupBy("trip_date", "branch_id")
+        .agg(
+            count("trip_id").alias("total_trips"),
+            spark_round(avg("distance"), 2).alias("avg_distance_km"),
+            spark_round(sum("distance"), 2).alias("total_distance_km"),
+            spark_round(avg("drive_duration_minutes"), 2).alias("avg_duration_min"),
+            spark_round(max("drive_duration_minutes"), 2).alias("max_duration_min")
+        )
+        .orderBy("trip_date", "branch_id")
+    )
+
+# === GOLD: Overall summary ===
+@dlt.table(
+    name="greenmo_trips_gold_summary",
+    comment="Overall trip summary by branch"
+)
+def greenmo_trips_gold_summary():
+    return (
+        dlt.read("greenmo_trips_silver")
+        .groupBy("branch_id")
+        .agg(
+            count("trip_id").alias("total_trips"),
+            spark_round(avg("distance"), 2).alias("avg_distance_km"),
+            spark_round(sum("distance"), 2).alias("total_distance_km"),
+            spark_round(avg("drive_duration_minutes"), 2).alias("avg_duration_min"),
+            min("drive_start_time").alias("first_trip"),
+            max("end_time").alias("last_trip")
+        )
+    )
