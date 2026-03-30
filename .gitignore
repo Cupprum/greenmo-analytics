@@ -1,11 +1,8 @@
 .env
 
 # Data
-financials.json
-reservations.json
+data/
 
 # Notes
 TODO.md
 
-# Dev stuff
-research/
