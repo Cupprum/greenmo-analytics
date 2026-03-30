@@ -1,11 +1,10 @@
-# Databricks notebook source
 from pyspark import pipelines as dp
 from pyspark.sql.functions import col, current_timestamp, count, avg, sum, min, max, to_timestamp, round as spark_round
 
 @dp.materialized_view(
     name="greenmo_trips_bronze",
     comment="Raw trip data from JSON files",
-    properties={
+    table_properties={
         "delta.columnMapping.mode": "name"
     }
 )
@@ -22,9 +21,11 @@ def greenmo_trips_bronze():
     name="greenmo_trips_silver",
     comment="Cleaned trip data"
 )
+@dp.expect_or_drop("valid_id", "trip_id IS NOT NULL")
+@dp.expect_or_drop("valid_times", "drive_start_time IS NOT NULL AND end_time IS NOT NULL")
 def greenmo_trips_silver():
-    df = (
-        dp.read("greenmo_trips_bronze")
+    return (
+        spark.read.table("greenmo_trips_bronze")
         .select(
             col("id").alias("trip_id"),
             col("branchId").alias("branch_id"),
@@ -49,10 +50,6 @@ def greenmo_trips_silver():
         .withColumn("drive_duration_minutes", 
             spark_round((col("end_time").cast("long") - col("drive_start_time").cast("long")) / 60, 2))
     )
-    dp.expect(df, "valid_id", "trip_id IS NOT NULL", "drop")
-    dp.expect(df, "valid_times", "drive_start_time IS NOT NULL AND end_time IS NOT NULL", "drop")
-    
-    return df
 
 @dp.materialized_view(
     name="greenmo_trips_gold_daily",
@@ -62,7 +59,7 @@ def greenmo_trips_gold_daily():
     from pyspark.sql.functions import to_date
     
     return (
-        dp.read("greenmo_trips_silver")
+        spark.read.table("greenmo_trips_silver")
         .withColumn("trip_date", to_date(col("drive_start_time")))
         .groupBy("trip_date", "branch_id")
         .agg(
@@ -81,7 +78,7 @@ def greenmo_trips_gold_daily():
 )
 def greenmo_trips_gold_summary():
     return (
-        dp.read("greenmo_trips_silver")
+        spark.read.table("greenmo_trips_silver")
         .groupBy("branch_id")
         .agg(
             count("trip_id").alias("total_trips"),
