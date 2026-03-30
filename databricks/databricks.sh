@@ -25,12 +25,25 @@ if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
 fi
 
 case ${1:-} in
+    get-data)
+        echo ">>> [GET DATA] Getting data from Greenmobility..."
+
+        cd src
+        echo ">>> Running get_trips.py..."
+        uv run get_trips.py
+        ;;
     deploy)
         echo ">>> [DEPLOY] Starting Databricks Deployment..."
-        
-        echo ">>> Creating secret..."
-        databricks secrets create-scope greenmo
-        databricks secrets put-secret greenmo api_token --string-value $GREENMO_API_TOKEN
+
+        echo ">>> Ensuring Unity Catalog Volume exists..."
+        databricks volumes create workspace default greenmo_raw_data MANAGED 2>/dev/null || echo "Volume already exists."
+        databricks fs mkdir dbfs:/Volumes/workspace/default/greenmo_raw_data/trips 2>/dev/null || true
+
+        echo ">>> Uploading data to Volume..."
+        databricks fs cp \
+            --recursive \
+            --overwrite \
+            data/trips/ dbfs:/Volumes/workspace/default/greenmo_raw_data/trips/
 
         echo ">>> Deploying bundle..."
         databricks bundle deploy
@@ -43,8 +56,12 @@ case ${1:-} in
     delete)
         echo ">>> [DELETE] Removing all resources from Databricks..."
 
-        echo ">>> Deleting secret..."
-        databricks secrets delete-secret greenmo api_token
+        echo ">>> Deleting Schema (Tables & Materialized Views)..."
+        databricks schemas delete workspace.greenmo_raw_data --force 2>/dev/null || echo "Schema not found."
+
+        echo ">>> Deleting Data Volume..."
+        databricks volumes delete workspace.default.greenmo_raw_data 2>/dev/null || echo "Volume not found."
+
 
         echo ">>> Destroying bundle..."
         databricks bundle destroy --auto-approve || echo "Bundle already destroyed or not found."
@@ -52,7 +69,7 @@ case ${1:-} in
         echo ">>> Cleanup complete!"
         ;;
     *)
-        echo "Usage: ./$0 {deploy|delete}"
+        echo "Usage: $0 {get-data|deploy|delete}"
         exit 1
         ;;
 esac
