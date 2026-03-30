@@ -36,13 +36,11 @@ case ${1:-} in
         echo ">>> [DEPLOY] Starting Databricks Deployment..."
 
         echo ">>> Ensuring Unity Catalog Volume exists..."
-        databricks volumes create workspace default greenmo_raw_data MANAGED 2>/dev/null || echo "Volume already exists."
-        databricks fs mkdir dbfs:/Volumes/workspace/default/greenmo_raw_data/trips 2>/dev/null || true
+        databricks volumes create workspace default greenmo_raw_data MANAGED 2>/dev/null
+        databricks fs mkdir dbfs:/Volumes/workspace/default/greenmo_raw_data/trips 2>/dev/null
 
         echo ">>> Uploading data to Volume..."
-        databricks fs cp \
-            --recursive \
-            --overwrite \
+        databricks fs cp --recursive \
             data/trips/ dbfs:/Volumes/workspace/default/greenmo_raw_data/trips/
 
         echo ">>> Deploying bundle..."
