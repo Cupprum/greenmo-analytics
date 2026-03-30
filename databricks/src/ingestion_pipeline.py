@@ -1,3 +1,5 @@
+# Databricks notebook source
+
 from pyspark import pipelines as dp
 from pyspark.sql.functions import col, current_timestamp, count, avg, sum, min, max, to_timestamp, round as spark_round
 
