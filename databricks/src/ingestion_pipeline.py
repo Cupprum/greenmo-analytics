@@ -24,8 +24,8 @@ def greenmo_trips_bronze():
     name="greenmo_trips_silver",
     comment="Cleaned and flattened trip data"
 )
-@dlt.expect_or_drop("valid_id", "id IS NOT NULL")
-@dlt.expect_or_drop("valid_times", "driveStartTime IS NOT NULL AND endTime IS NOT NULL")
+@dlt.expect_or_drop("valid_id", "trip_id IS NOT NULL")
+@dlt.expect_or_drop("valid_times", "drive_start_time IS NOT NULL AND end_time IS NOT NULL")
 def greenmo_trips_silver():
     return (
         dlt.read("greenmo_trips_bronze")
