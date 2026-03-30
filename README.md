@@ -1,9 +1,7 @@
 # Show statistics about GreenMobility usage
 
-Get and cache data from GreenMobility and show details about usage.
+Databricks data product showing usage of Greenmobility for a specific user 
 
-## Execution:
-
-Store the Greenmobility token in `.env` file. (I get my token using ProxyMan application on iPhone)
-
-Execute the: `./run.sh` bash script
+- **Bronze Layer**: Raw API data stored as JSON
+- **Silver Layer**: Cleaned, validated, and deduplicated data
+- **Gold Layer**: Aggregated metrics and summaries
