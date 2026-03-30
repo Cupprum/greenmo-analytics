@@ -1,12 +1,11 @@
 # Databricks notebook source
-import dlt
+from pyspark import pipelines as dp
 from pyspark.sql.functions import col, current_timestamp, count, avg, sum, min, max, to_timestamp, round as spark_round
 
-# === BRONZE: Load raw JSON files ===
-@dlt.table(
+@dp.materialized_view(
     name="greenmo_trips_bronze",
     comment="Raw trip data from JSON files",
-    table_properties={
+    properties={
         "delta.columnMapping.mode": "name"
     }
 )
@@ -19,16 +18,13 @@ def greenmo_trips_bronze():
         .withColumn("ingestion_time", current_timestamp())
     )
 
-# === SILVER: Clean and flatten ===
-@dlt.table(
+@dp.materialized_view(
     name="greenmo_trips_silver",
-    comment="Cleaned and flattened trip data"
+    comment="Cleaned trip data"
 )
-@dlt.expect_or_drop("valid_id", "trip_id IS NOT NULL")
-@dlt.expect_or_drop("valid_times", "drive_start_time IS NOT NULL AND end_time IS NOT NULL")
 def greenmo_trips_silver():
-    return (
-        dlt.read("greenmo_trips_bronze")
+    df = (
+        dp.read("greenmo_trips_bronze")
         .select(
             col("id").alias("trip_id"),
             col("branchId").alias("branch_id"),
@@ -53,9 +49,12 @@ def greenmo_trips_silver():
         .withColumn("drive_duration_minutes", 
             spark_round((col("end_time").cast("long") - col("drive_start_time").cast("long")) / 60, 2))
     )
+    dp.expect(df, "valid_id", "trip_id IS NOT NULL", "drop")
+    dp.expect(df, "valid_times", "drive_start_time IS NOT NULL AND end_time IS NOT NULL", "drop")
+    
+    return df
 
-# === GOLD: Daily trip metrics ===
-@dlt.table(
+@dp.materialized_view(
     name="greenmo_trips_gold_daily",
     comment="Daily trip aggregations"
 )
@@ -63,7 +62,7 @@ def greenmo_trips_gold_daily():
     from pyspark.sql.functions import to_date
     
     return (
-        dlt.read("greenmo_trips_silver")
+        dp.read("greenmo_trips_silver")
         .withColumn("trip_date", to_date(col("drive_start_time")))
         .groupBy("trip_date", "branch_id")
         .agg(
@@ -76,14 +75,13 @@ def greenmo_trips_gold_daily():
         .orderBy("trip_date", "branch_id")
     )
 
-# === GOLD: Overall summary ===
-@dlt.table(
+@dp.materialized_view(
     name="greenmo_trips_gold_summary",
-    comment="Overall trip summary by branch"
+    comment="Overall trip summary"
 )
 def greenmo_trips_gold_summary():
     return (
-        dlt.read("greenmo_trips_silver")
+        dp.read("greenmo_trips_silver")
         .groupBy("branch_id")
         .agg(
             count("trip_id").alias("total_trips"),
