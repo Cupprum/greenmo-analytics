@@ -1,0 +1,52 @@
+bundle:
+  name: greenmo-analytics
+
+resources:
+  pipelines:
+    greenmo_ingestion_rentals:
+      name: "Greenmo Ingestion Rentals"
+      catalog: workspace
+      target: greenmobility
+      serverless: true
+      libraries:
+        - notebook:
+            path: ./src/rentals_pipeline.py
+      development: true
+      continuous: false
+
+    greenmo_ingestion_vouchers:
+      name: "Greenmo Ingestion Vouchers"
+      catalog: workspace
+      target: greenmobility
+      serverless: true
+      libraries:
+        - notebook:
+            path: ./src/vouchers_pipeline.py
+      development: true
+      continuous: false
+
+    greenmo_ingestion_invoices:
+      name: "Greenmo Ingestion Invoices"
+      catalog: workspace
+      target: greenmobility
+      serverless: true
+      libraries:
+        - notebook:
+            path: ./src/invoices_pipeline.py
+      development: true
+      continuous: false
+
+  jobs:
+    greenmo_dashboard_refresh:
+      name: "GreenMobility Dashboard Refresh"
+      tasks:
+        - task_key: refresh_dashboard
+          notebook_task:
+            notebook_path: ./src/visualization_dashboard.py
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-8ab51300-e90a.cloud.databricks.com
