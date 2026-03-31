@@ -37,8 +37,8 @@ resources:
       continuous: false
 
   jobs:
-    refresh_analytics_dashboard:
-      name: "Refresh GreenMobility Dashboard"
+    greenmo_dashboard_refresh:
+      name: "GreenMobility Dashboard Refresh"
       tasks:
         - task_key: refresh_dashboard
           notebook_task:
