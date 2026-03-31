@@ -4,8 +4,11 @@ This project ingests and analyzes GreenMobility data. It fetches data from the g
 
 It has three main parts:
 1.  **Data Fetching Script (`src/get_data.py`)**: Gets raw data for rentals, vouchers, and invoices from the API.
-2.  **Databricks Pipeline (`src/ingestion_pipeline.py`)**: Processes raw data into Bronze, Silver, and Gold layers in Databricks.
-3.  **Databricks Script (`databricks.sh`)**: Manages deployment, data upload, and pipeline execution.
+2.  **Databricks Pipelines (`src/*_pipeline.py`)**: Processes raw data into Bronze, Silver, and Gold layers in Databricks using three separate pipelines:
+    -   `greenmo_ingestion_rentals` (using `src/rentals_pipeline.py`)
+    -   `greenmo_ingestion_vouchers` (using `src/vouchers_pipeline.py`)
+    -   `greenmo_ingestion_invoices` (using `src/invoices_pipeline.py`)
+3.  **Databricks Script (`databricks.sh`)**: Manages deployment, data upload, and pipeline execution for all three pipelines.
 
 ## Data Storage
 
@@ -18,10 +21,17 @@ During deployment, this data uploads to Databricks Volume: `/Volumes/workspace/d
 
 ## Databricks Processing Layers
 
-The pipeline processes data in Databricks:
--   **Bronze Layer**: Raw ingested data. Tables: `greenmo_rentals_bronze`, `greenmo_vouchers_bronze`, `greenmo_invoices_bronze`.
--   **Silver Layer**: Cleaned, validated data. Tables: `greenmo_rentals_silver`, `greenmo_vouchers_silver`, `greenmo_invoices_silver`.
--   **Gold Layer**: Aggregated analytics data. Tables: `greenmo_rentals_gold_daily`, `greenmo_rentals_gold_summary`. (Voucher/Invoice Gold tables not yet implemented).
+The pipelines process data in Databricks:
+-   **Rentals Pipeline**:
+    -   Bronze: `greenmo_rentals_bronze`
+    -   Silver: `greenmo_rentals_silver`
+    -   Gold: `greenmo_rentals_gold_daily`, `greenmo_rentals_gold_summary`
+-   **Vouchers Pipeline**:
+    -   Bronze: `greenmo_vouchers_bronze`
+    -   Silver: `greenmo_vouchers_silver`
+-   **Invoices Pipeline**:
+    -   Bronze: `greenmo_invoices_bronze`
+    -   Silver: `greenmo_invoices_silver`
 
 ## APIs and Examples
 
