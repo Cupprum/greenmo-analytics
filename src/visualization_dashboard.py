@@ -19,29 +19,55 @@ def load_table(name):
 # MAGIC ## Global Summaries
 
 # COMMAND ----------
-
 # Load summaries
 rentals_summary = load_table("rentals_gold_summary")
 invoices_summary = load_table("invoices_gold_summary")
 
 total_km = rentals_summary["total_distance_km"].iloc[0]
-total_min = rentals_summary["total_drive_duration_minutes"].iloc[0]
 total_spent = invoices_summary["total_spent_gross"].iloc[0]
+total_min = rentals_summary["total_drive_duration_minutes"].iloc[0]
+total_hours = total_min / 60
+total_days = total_min / (60 * 24)
 
 # Display as big text using HTML
 displayHTML(f"""
-<div style="display: flex; justify-content: space-around; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border: 1px solid #dee2e6;">
-    <div style="text-align: center;">
-        <h2 style="color: #6c757d; font-size: 1.2em;">Total Distance</h2>
-        <p style="font-size: 3em; font-weight: bold; color: #28a745; margin: 0;">{total_km:,.1f} <span style="font-size: 0.4em;">km</span></p>
+<style>
+    .dashboard {{ font-family: sans-serif; display: flex; flex-direction: column; gap: 15px; }}
+    .kpi-row {{ display: flex; justify-content: space-around; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; }}
+    .kpi {{ text-align: center; }}
+    .kpi h2 {{ color: #6c757d; font-size: 1.2em; margin: 0 0 5px 0; }}
+    .kpi p {{ font-size: 3em; font-weight: bold; margin: 0; }}
+    .kpi span {{ font-size: 0.4em; color: #6c757d; }}
+    .text-green {{ color: #28a745; }}
+    .text-red {{ color: #dc3545; }}
+    .text-blue {{ color: #007bff; }}
+</style>
+
+<div class="dashboard">
+    <div class="kpi-row">
+        <div class="kpi">
+            <h2>Total Distance</h2>
+            <p class="text-green">{total_km:,.1f} <span>km</span></p>
+        </div>
+        <div class="kpi">
+            <h2>Total Spent</h2>
+            <p class="text-red">{total_spent:,.2f} <span>DKK</span></p>
+        </div>
     </div>
-    <div style="text-align: center;">
-        <h2 style="color: #6c757d; font-size: 1.2em;">Total Duration</h2>
-        <p style="font-size: 3em; font-weight: bold; color: #007bff; margin: 0;">{total_min:,.0f} <span style="font-size: 0.4em;">min</span></p>
-    </div>
-    <div style="text-align: center;">
-        <h2 style="color: #6c757d; font-size: 1.2em;">Total Spent</h2>
-        <p style="font-size: 3em; font-weight: bold; color: #dc3545; margin: 0;">{total_spent:,.2f} <span style="font-size: 0.4em;">DKK</span></p>
+
+    <div class="kpi-row">
+        <div class="kpi">
+            <h2>Total Time (Min)</h2>
+            <p class="text-blue">{total_min:,.0f}</p>
+        </div>
+        <div class="kpi">
+            <h2>Total Time (Hours)</h2>
+            <p class="text-blue">{total_hours:,.0f}</p>
+        </div>
+        <div class="kpi">
+            <h2>Total Time (Days)</h2>
+            <p class="text-blue">{total_days:,.0f}</p>
+        </div>
     </div>
 </div>
 """)
