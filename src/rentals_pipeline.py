@@ -90,6 +90,7 @@ def rentals_gold_summary():
             count("rental_id").alias("total_rentals"),
             spark_round(avg("rental_distance_km"), 2).alias("avg_distance_km"),
             spark_round(sum("rental_distance_km"), 2).alias("total_distance_km"),
-            spark_round(avg("rental_drive_duration_minutes"), 2).alias("avg_duration_min")
+            spark_round(avg("rental_drive_duration_minutes"), 2).alias("avg_duration_min"),
+            spark_round(sum("rental_drive_duration_minutes"), 2).alias("total_drive_duration_minutes")
         )
     )

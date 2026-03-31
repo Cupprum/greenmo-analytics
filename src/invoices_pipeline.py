@@ -83,3 +83,17 @@ def invoices_gold_monthly():
         )
         .orderBy("year", "month")
     )
+
+@dp.materialized_view(
+    name="invoices_gold_summary",
+    comment="Overall spending summary"
+)
+def invoices_gold_summary():
+    return (
+        spark.read.table("invoices_silver")
+        .agg(
+            spark_round(spark_sum("grossPrice"), 2).alias("total_spent_gross"),
+            spark_round(spark_sum("netPrice"), 2).alias("total_spent_net"),
+            count("invoice_primary_id").alias("invoice_count")
+        )
+    )
