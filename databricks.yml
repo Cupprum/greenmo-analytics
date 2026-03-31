@@ -36,6 +36,14 @@ resources:
       development: true
       continuous: false
 
+  jobs:
+    refresh_analytics_dashboard:
+      name: "Refresh GreenMobility Dashboard"
+      tasks:
+        - task_key: refresh_dashboard
+          notebook_task:
+            notebook_path: ./src/visualization_dashboard.py
+
 targets:
   dev:
     mode: development
