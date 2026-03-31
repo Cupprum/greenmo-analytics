@@ -17,7 +17,7 @@ load_env_file() {
     fi
 }
 
-load_env_file "../.env"
+load_env_file ".env"
 
 if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
     echo "Error: DATABRICKS_HOST and DATABRICKS_TOKEN must be set."
@@ -54,8 +54,14 @@ case ${1:-} in
         echo ">>> Deploying bundle..."
         databricks bundle deploy
 
-        echo ">>> Running Pipeline..."
-        databricks bundle run greenmo_pipeline
+        echo ">>> Running Pipelines..."
+        # Can't run them in parallel on the free tier account
+        echo "Running Rentals Pipeline..."
+        databricks bundle run greenmo_ingestion_rentals
+        echo "Running Vouchers Pipeline..."
+        databricks bundle run greenmo_ingestion_vouchers
+        echo "Running Invoices Pipeline..."
+        databricks bundle run greenmo_ingestion_invoices
 
         echo ">>> Deployment and Execution Successful!"
         ;;
