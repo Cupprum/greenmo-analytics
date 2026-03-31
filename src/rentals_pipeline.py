@@ -1,17 +1,17 @@
 # Databricks notebook source
 
 from pyspark import pipelines as dp
-from pyspark.sql.functions import col, current_timestamp, count, avg, sum, min, max, to_timestamp, round as spark_round, to_date, year, month
+from pyspark.sql.functions import col, current_timestamp, count, avg, sum, max, to_timestamp, round as spark_round, to_date, year, month
 
 
 @dp.materialized_view(
-    name="greenmo_rentals_bronze",
+    name="rentals_bronze",
     comment="Raw rental data from JSON files",
     table_properties={
         "delta.columnMapping.mode": "name"
     }
 )
-def greenmo_rentals_bronze():
+def rentals_bronze():
     return (
         spark.read
         .format("json")
@@ -21,14 +21,14 @@ def greenmo_rentals_bronze():
     )
 
 @dp.materialized_view(
-    name="greenmo_rentals_silver",
+    name="rentals_silver",
     comment="Cleaned and transformed rental data"
 )
 @dp.expect_or_drop("valid_rental_id", "rental_id IS NOT NULL")
 @dp.expect_or_drop("valid_rental_times", "rental_drive_start_time IS NOT NULL AND rental_end_time IS NOT NULL")
-def greenmo_rentals_silver():
+def rentals_silver():
     return (
-        spark.read.table("greenmo_rentals_bronze")
+        spark.read.table("rentals_bronze")
         .select(
             col("id").alias("rental_id"),
             to_timestamp(col("driveStartTime")).alias("rental_drive_start_time"),
@@ -40,14 +40,13 @@ def greenmo_rentals_silver():
             spark_round((col("rental_end_time").cast("long") - col("rental_drive_start_time").cast("long")) / 60, 2))
     )
 
-
 @dp.materialized_view(
-    name="greenmo_rentals_gold_daily",
+    name="rentals_gold_daily",
     comment="Daily rental aggregations"
 )
-def greenmo_rentals_gold_daily():
+def rentals_gold_daily():
     return (
-        spark.read.table("greenmo_rentals_silver")
+        spark.read.table("rentals_silver")
         .withColumn("rental_date", to_date(col("rental_drive_start_time")))
         .groupBy("rental_date")
         .agg(
@@ -61,12 +60,12 @@ def greenmo_rentals_gold_daily():
     )
 
 @dp.materialized_view(
-    name="greenmo_rentals_gold_monthly",
+    name="rentals_gold_monthly",
     comment="Monthly rental aggregations"
 )
-def greenmo_rentals_gold_monthly():
+def rentals_gold_monthly():
     return (
-        spark.read.table("greenmo_rentals_silver")
+        spark.read.table("rentals_silver")
         .withColumn("rental_year", year(col("rental_drive_start_time")))
         .withColumn("rental_month", month(col("rental_drive_start_time")))
         .groupBy("rental_year", "rental_month")
@@ -81,18 +80,16 @@ def greenmo_rentals_gold_monthly():
     )
 
 @dp.materialized_view(
-    name="greenmo_rentals_gold_summary",
+    name="rentals_gold_summary",
     comment="Overall rental summary"
 )
-def greenmo_rentals_gold_summary():
+def rentals_gold_summary():
     return (
-        spark.read.table("greenmo_rentals_silver")
+        spark.read.table("rentals_silver")
         .agg(
             count("rental_id").alias("total_rentals"),
             spark_round(avg("rental_distance_km"), 2).alias("avg_distance_km"),
             spark_round(sum("rental_distance_km"), 2).alias("total_distance_km"),
-            spark_round(avg("rental_drive_duration_minutes"), 2).alias("avg_duration_min"),
-            min("rental_drive_start_time").alias("first_rental"),
-            max("rental_end_time").alias("last_rental")
+            spark_round(avg("rental_drive_duration_minutes"), 2).alias("avg_duration_min")
         )
     )

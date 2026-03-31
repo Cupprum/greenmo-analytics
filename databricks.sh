@@ -50,7 +50,6 @@ case ${1:-} in
         echo "Uploading invoices data..."
         databricks fs cp --recursive data/invoices/ dbfs:/Volumes/workspace/default/greenmo_raw_data/invoices/ 2>/dev/null || echo "No new invoices data to upload or error occurred."
 
-
         echo ">>> Deploying bundle..."
         databricks bundle deploy
 
