@@ -33,28 +33,15 @@ def greenmo_rentals_silver():
         spark.read.table("greenmo_rentals_bronze")
         .select(
             col("id").alias("rental_id"),
-            col("branchId").alias("branch_id"),
-            col("invoiceId").alias("invoice_id"),
-            col("state").alias("rental_state"),
-            col("type").alias("rental_type"),
-            to_timestamp(col("startTime")).alias("rental_start_time"),
             to_timestamp(col("driveStartTime")).alias("rental_drive_start_time"),
             to_timestamp(col("endTime")).alias("rental_end_time"),
-            col("distance").alias("rental_distance_km"),
-            col("currency"),
-            col("startAddress").alias("rental_start_address"),
-            col("endAddress").alias("rental_end_address"),
-            col("startKilometers").alias("rental_start_km"),
-            col("endKilometers").alias("rental_end_km"),
-            col("vehicle.licensePlate").alias("vehicle_plate"),
-            col("vehicle.name").alias("vehicle_name"),
-            col("rideMode").alias("rental_ride_mode"),
-            col("ingestion_time")
+            col("distance").alias("rental_distance_km")
         )
         .dropDuplicates(["rental_id"])
         .withColumn("rental_drive_duration_minutes", 
             spark_round((col("rental_end_time").cast("long") - col("rental_drive_start_time").cast("long")) / 60, 2))
     )
+
 
 @dp.materialized_view(
     name="greenmo_rentals_gold_daily",
@@ -64,7 +51,7 @@ def greenmo_rentals_gold_daily():
     return (
         spark.read.table("greenmo_rentals_silver")
         .withColumn("rental_date", to_date(col("rental_drive_start_time")))
-        .groupBy("rental_date", "branch_id")
+        .groupBy("rental_date")
         .agg(
             count("rental_id").alias("total_rentals"),
             spark_round(avg("rental_distance_km"), 2).alias("avg_distance_km"),
@@ -72,7 +59,27 @@ def greenmo_rentals_gold_daily():
             spark_round(avg("rental_drive_duration_minutes"), 2).alias("avg_duration_min"),
             spark_round(max("rental_drive_duration_minutes"), 2).alias("max_duration_min")
         )
-        .orderBy("rental_date", "branch_id")
+        .orderBy("rental_date")
+    )
+
+@dp.materialized_view(
+    name="greenmo_rentals_gold_monthly",
+    comment="Monthly rental aggregations"
+)
+def greenmo_rentals_gold_monthly():
+    return (
+        spark.read.table("greenmo_rentals_silver")
+        .withColumn("rental_year", year(col("rental_drive_start_time")))
+        .withColumn("rental_month", month(col("rental_drive_start_time")))
+        .groupBy("rental_year", "rental_month")
+        .agg(
+            count("rental_id").alias("total_rentals"),
+            spark_round(avg("rental_distance_km"), 2).alias("avg_distance_km"),
+            spark_round(sum("rental_distance_km"), 2).alias("total_distance_km"),
+            spark_round(avg("rental_drive_duration_minutes"), 2).alias("avg_duration_min"),
+            spark_round(max("rental_drive_duration_minutes"), 2).alias("max_duration_min")
+        )
+        .orderBy("rental_year", "rental_month")
     )
 
 @dp.materialized_view(
@@ -82,7 +89,6 @@ def greenmo_rentals_gold_daily():
 def greenmo_rentals_gold_summary():
     return (
         spark.read.table("greenmo_rentals_silver")
-        .groupBy("branch_id")
         .agg(
             count("rental_id").alias("total_rentals"),
             spark_round(avg("rental_distance_km"), 2).alias("avg_distance_km"),
