@@ -29,6 +29,7 @@ def invoices_bronze():
 def invoices_silver():
     price_schema = StructType([
         StructField("netPrice", DoubleType(), True),
+        StructField("containedTax", DoubleType(), True),
         StructField("grossPrice", DoubleType(), True)
     ])
 
