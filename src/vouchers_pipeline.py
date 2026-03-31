@@ -1,10 +1,8 @@
 # Databricks notebook source
 
-import os
 from pyspark import pipelines as dp
 from pyspark.sql.functions import col, current_timestamp, to_timestamp, count, sum as spark_sum
 
-RAW_DATA_VOLUME_PATH = "/Volumes/workspace/default/greenmo_raw_data/"
 
 @dp.materialized_view(
     name="greenmo_vouchers_bronze",
@@ -18,7 +16,7 @@ def greenmo_vouchers_bronze():
         spark.read
         .format("json")
         .option("multiLine", "true")
-        .load(os.path.join(RAW_DATA_VOLUME_PATH, "vouchers/"))
+        .load("/Volumes/workspace/default/greenmo_raw_data/vouchers/")
         .withColumn("ingestion_time", current_timestamp())
     )
 
@@ -31,21 +29,10 @@ def greenmo_vouchers_silver():
     return (
         spark.read.table("greenmo_vouchers_bronze")
         .select(
-            col("voucherableCode").alias("voucher_id"), # Use 'voucherableCode' as unique identifier for voucher
-            col("branchId").alias("branch_id"),
+            col("voucherableCode").alias("voucher_id"),
             col("name").alias("voucher_name"),
-            col("voucherType").alias("voucher_type"),
-            col("currency"),
             col("valueNet").alias("value_net"),
-            col("remainingValueNet").alias("remaining_value_net"),
-            col("valueGross").alias("value_gross"),
-            col("description"),
-            col("signup"),
-            to_timestamp(col("validFrom")).alias("valid_from"),
-            to_timestamp(col("validUntil")).alias("valid_until"),
-            col("status"),
-            col("applicablePriceType").alias("applicable_price_type"),
-            col("ingestion_time")
+            col("valueGross").alias("value_gross")
         )
         .dropDuplicates(["voucher_id"])
     )
@@ -57,7 +44,7 @@ def greenmo_vouchers_silver():
 def greenmo_vouchers_gold_charging():
     return (
         spark.read.table("greenmo_vouchers_silver")
-        .filter(col("voucher_name").contains("Charging reward"))
+        .filter(col("voucher_name").contains("Charging"))
         .agg(
             count("voucher_id").alias("total_charging_vouchers"),
             spark_sum("value_gross").alias("total_value_gross"),
