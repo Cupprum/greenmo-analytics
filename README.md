@@ -21,17 +21,34 @@ During deployment, this data uploads to Databricks Volume: `/Volumes/workspace/d
 
 ## Databricks Processing Layers
 
-The pipelines process data in Databricks:
+The pipelines process data in Databricks within the `workspace.greenmobility` schema:
 -   **Rentals Pipeline**:
-    -   Bronze: `greenmo_rentals_bronze`
-    -   Silver: `greenmo_rentals_silver`
-    -   Gold: `greenmo_rentals_gold_daily`, `greenmo_rentals_gold_summary`
+    -   Bronze: `rentals_bronze` - Raw rental data from JSON files.
+    -   Silver: `rentals_silver` - Cleaned and transformed rental data with calculated durations.
+    -   Gold:
+        -   `rentals_gold_daily`: Daily aggregations of total rentals, distance, and duration.
+        -   `rentals_gold_monthly`: Monthly aggregations of total rentals, distance, and duration.
+        -   `rentals_gold_summary`: Overall summary of rental metrics (distance, duration, count).
 -   **Vouchers Pipeline**:
-    -   Bronze: `greenmo_vouchers_bronze`
-    -   Silver: `greenmo_vouchers_silver`
+    -   Bronze: `vouchers_bronze` - Raw voucher data from JSON files.
+    -   Silver: `vouchers_silver` - Cleaned and transformed voucher data.
+    -   Gold:
+        -   `vouchers_gold_charging_monthly`: Monthly aggregations of charging-related vouchers.
+        -   `vouchers_gold_charging_summary`: Overall summary of charging-related vouchers.
 -   **Invoices Pipeline**:
-    -   Bronze: `greenmo_invoices_bronze`
-    -   Silver: `greenmo_invoices_silver`
+    -   Bronze: `invoices_bronze` - Raw invoice data from JSON files.
+    -   Silver: `invoices_silver` - Cleaned and transformed invoice data with net/gross prices.
+    -   Gold:
+        -   `invoices_gold_yearly`: Yearly spending aggregations.
+        -   `invoices_gold_monthly`: Monthly spending aggregations.
+        -   `invoices_gold_summary`: Overall spending summary.
+
+## Visualization Dashboard
+
+The project includes a visualization dashboard (`src/visualization_dashboard.py`) deployed as a Databricks Job. It provides:
+-   **Global Highlights**: Big-text display of total kilometers driven, total minutes, and total spending.
+-   **Interactive Charts**: Scrollable Plotly charts for monthly distance, duration, and financial metrics (invoices and vouchers).
+-   **Automated Refresh**: The dashboard is refreshed automatically after the pipelines complete.
 
 ## APIs and Examples
 
