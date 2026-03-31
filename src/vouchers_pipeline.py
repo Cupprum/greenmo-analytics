@@ -24,18 +24,17 @@ def vouchers_bronze():
     name="vouchers_silver",
     comment="Cleaned and transformed voucher data"
 )
-@dp.expect_or_drop("valid_voucher_id", "voucher_id IS NOT NULL")
+@dp.expect_or_drop("valid_voucher", "valid_from IS NOT NULL")
 def vouchers_silver():
     return (
         spark.read.table("vouchers_bronze")
         .select(
-            col("voucherableCode").alias("voucher_id"),
+            col("validFrom").alias("valid_from"),
             col("name").alias("voucher_name"),
             col("valueNet").alias("value_net"),
-            col("valueGross").alias("value_gross"),
-            col("validFrom").alias("valid_from")
+            col("valueGross").alias("value_gross")
         )
-        .dropDuplicates(["voucher_id"])
+        .dropDuplicates(["valid_from"])
     )
 
 @dp.materialized_view(
@@ -50,7 +49,7 @@ def vouchers_gold_charging_monthly():
         .withColumn("voucher_month", month(col("valid_from")))
         .groupBy("voucher_year", "voucher_month")
         .agg(
-            count("voucher_id").alias("total_charging_vouchers"),
+            count("valid_from").alias("total_charging_vouchers"),
             spark_sum("value_gross").alias("total_value_gross"),
             spark_sum("value_net").alias("total_value_net")
         )
@@ -66,7 +65,7 @@ def vouchers_gold_charging_summary():
         spark.read.table("vouchers_silver")
         .filter(col("voucher_name").contains("Charging"))
         .agg(
-            count("voucher_id").alias("total_charging_vouchers"),
+            count("valid_from").alias("total_charging_vouchers"),
             spark_sum("value_gross").alias("total_value_gross"),
             spark_sum("value_net").alias("total_value_net")
         )
