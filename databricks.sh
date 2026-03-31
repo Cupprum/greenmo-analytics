@@ -54,13 +54,16 @@ case ${1:-} in
         databricks bundle deploy
 
         echo ">>> Running Pipelines..."
-        # Can't run them in parallel on the free tier account
+        # Note: Can't run them in parallel on the free tier account
         echo "Running Rentals Pipeline..."
         databricks bundle run greenmo_ingestion_rentals
         echo "Running Vouchers Pipeline..."
         databricks bundle run greenmo_ingestion_vouchers
         echo "Running Invoices Pipeline..."
         databricks bundle run greenmo_ingestion_invoices
+
+        echo ">>> Running Dashbord Refresh Job..."
+        databricks bundle run greenmo_dashboard_refresh
 
         echo ">>> Deployment and Execution Successful!"
         ;;
