@@ -1,10 +1,8 @@
 # Databricks notebook source
 
-import os
 from pyspark import pipelines as dp
-from pyspark.sql.functions import col, current_timestamp, count, avg, sum, min, max, to_timestamp, round as spark_round, to_date
+from pyspark.sql.functions import col, current_timestamp, count, avg, sum, min, max, to_timestamp, round as spark_round, to_date, year, month
 
-RAW_DATA_VOLUME_PATH = "/Volumes/workspace/default/greenmo_raw_data/"
 
 @dp.materialized_view(
     name="greenmo_rentals_bronze",
@@ -18,7 +16,7 @@ def greenmo_rentals_bronze():
         spark.read
         .format("json")
         .option("multiLine", "true")
-        .load(os.path.join(RAW_DATA_VOLUME_PATH, "rentals/"))
+        .load("/Volumes/workspace/default/greenmo_raw_data/rentals/")
         .withColumn("ingestion_time", current_timestamp())
     )
 
