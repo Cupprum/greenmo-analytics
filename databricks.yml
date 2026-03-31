@@ -3,14 +3,36 @@ bundle:
 
 resources:
   pipelines:
-    greenmo_pipeline:
-      name: "Greenmo Ingestion Pipeline"
+    greenmo_ingestion_rentals:
+      name: "Greenmo Ingestion Rentals"
       catalog: workspace
       target: greenmobility
       serverless: true
       libraries:
         - notebook:
-            path: ./src/ingestion_pipeline.py
+            path: ./src/rentals_pipeline.py
+      development: true
+      continuous: false
+
+    greenmo_ingestion_vouchers:
+      name: "Greenmo Ingestion Vouchers"
+      catalog: workspace
+      target: greenmobility
+      serverless: true
+      libraries:
+        - notebook:
+            path: ./src/vouchers_pipeline.py
+      development: true
+      continuous: false
+
+    greenmo_ingestion_invoices:
+      name: "Greenmo Ingestion Invoices"
+      catalog: workspace
+      target: greenmobility
+      serverless: true
+      libraries:
+        - notebook:
+            path: ./src/invoices_pipeline.py
       development: true
       continuous: false
 
